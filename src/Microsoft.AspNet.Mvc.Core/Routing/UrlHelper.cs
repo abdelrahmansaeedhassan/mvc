@@ -32,9 +32,9 @@ namespace Microsoft.AspNet.Mvc.Routing
             ActionContext = actionContext;
         }
 
-        protected RouteValueDictionary AmbientValues => ActionContext.RouteData.Values;
+        public ActionContext ActionContext { get; }
 
-        protected ActionContext ActionContext { get; }
+        protected RouteValueDictionary AmbientValues => ActionContext.RouteData.Values;
 
         protected HttpContext HttpContext => ActionContext.HttpContext;
 
