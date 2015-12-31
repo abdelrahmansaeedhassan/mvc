@@ -148,7 +148,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
         /// <see cref="IDictionary{string, object}"/> instance containing the route parameters.
         /// </param>
         /// <param name="method">The HTTP method for processing the form, either GET or POST.</param>
-        /// <param name="antiforgery">
+        /// <param name="suppressAntiforgery">
         /// Determines whether or not to include an &lt;input&gt; of type "hidden" with an antiforgery token.
         /// </param>
         /// <param name="htmlAttributes">
@@ -165,7 +165,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             string routeName,
             object routeValues,
             FormMethod method,
-            bool antiforgery,
+            bool suppressAntiforgery,
             object htmlAttributes);
 
         /// <summary>

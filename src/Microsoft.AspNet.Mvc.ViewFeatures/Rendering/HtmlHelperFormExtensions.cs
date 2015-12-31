@@ -39,6 +39,38 @@ namespace Microsoft.AspNet.Mvc.Rendering
         }
 
         /// <summary>
+        /// Renders a &lt;form&gt; start tag to the response. The &lt;form&gt;'s <c>action</c> attribute value will
+        /// match the current request.
+        /// </summary>
+        /// <param name="htmlHelper">The <see cref="IHtmlHelper"/> instance this method extends.</param>
+        /// <param name="suppressAntiforgery">
+        /// If <c>true</c>, suppresses the generation an &lt;input&gt; of type "hidden" with an antiforgery token. By
+        /// default &lt;form&gt; tags will automatically include an antiforgery token.
+        /// </param>
+        /// <returns>
+        /// An <see cref="MvcForm"/> instance which renders the &lt;/form&gt; end tag when disposed.
+        /// </returns>
+        /// <remarks>
+        /// In this context, "renders" means the method writes its output using <see cref="ViewContext.Writer"/>.
+        /// </remarks>
+        public static MvcForm BeginForm(this IHtmlHelper htmlHelper, bool suppressAntiforgery)
+        {
+            if (htmlHelper == null)
+            {
+                throw new ArgumentNullException(nameof(htmlHelper));
+            }
+
+            // Generates <form action="{current url}" method="post">.
+            return htmlHelper.BeginForm(
+                actionName: null,
+                controllerName: null,
+                routeValues: null,
+                method: FormMethod.Post,
+                suppressAntiforgery: suppressAntiforgery,
+                htmlAttributes: null);
+        }
+
+        /// <summary>
         /// Renders a &lt;form&gt; start tag to the response. When the user submits the form, the
         /// current action will process the request.
         /// </summary>
@@ -394,7 +426,44 @@ namespace Microsoft.AspNet.Mvc.Rendering
                 routeName: null,
                 routeValues: routeValues,
                 method: FormMethod.Post,
-                antiforgery: false,
+                suppressAntiforgery: false,
+                htmlAttributes: null);
+        }
+
+        /// <summary>
+        /// Renders a &lt;form&gt; start tag to the response. The first route that can provide a URL with the
+        /// specified <paramref name="routeValues"/> generates the &lt;form&gt;'s <c>action</c> attribute value.
+        /// </summary>
+        /// <param name="htmlHelper">The <see cref="IHtmlHelper"/> instance this method extends.</param>
+        /// <param name="routeValues">
+        /// An <see cref="object"/> that contains the parameters for a route. The parameters are retrieved through
+        /// reflection by examining the properties of the <see cref="object"/>. This <see cref="object"/> is typically
+        /// created using <see cref="object"/> initializer syntax. Alternatively, an
+        /// <see cref="System.Collections.Generic.IDictionary{string, object}"/> instance containing the route
+        /// parameters.
+        /// </param>
+        /// <param name="suppressAntiforgery">
+        /// If <c>true</c>, suppresses the generation an &lt;input&gt; of type "hidden" with an antiforgery token. By
+        /// default &lt;form&gt; tags will automatically include an antiforgery token.
+        /// </param>
+        /// <returns>
+        /// An <see cref="MvcForm"/> instance which renders the &lt;/form&gt; end tag when disposed.
+        /// </returns>
+        /// <remarks>
+        /// In this context, "renders" means the method writes its output using <see cref="ViewContext.Writer"/>.
+        /// </remarks>
+        public static MvcForm BeginRouteForm(this IHtmlHelper htmlHelper, object routeValues, bool suppressAntiforgery)
+        {
+            if (htmlHelper == null)
+            {
+                throw new ArgumentNullException(nameof(htmlHelper));
+            }
+
+            return htmlHelper.BeginRouteForm(
+                routeName: null,
+                routeValues: routeValues,
+                method: FormMethod.Post,
+                suppressAntiforgery: suppressAntiforgery,
                 htmlAttributes: null);
         }
 
@@ -421,7 +490,38 @@ namespace Microsoft.AspNet.Mvc.Rendering
                 routeName,
                 routeValues: null,
                 method: FormMethod.Post,
-                antiforgery: false,
+                suppressAntiforgery: false,
+                htmlAttributes: null);
+        }
+
+        /// <summary>
+        /// Renders a &lt;form&gt; start tag to the response. The route with name <paramref name="routeName"/>
+        /// generates the &lt;form&gt;'s <c>action</c> attribute value.
+        /// </summary>
+        /// <param name="htmlHelper">The <see cref="IHtmlHelper"/> instance this method extends.</param>
+        /// <param name="routeName">The name of the route.</param>
+        /// <param name="suppressAntiforgery">
+        /// If <c>true</c>, suppresses the generation an &lt;input&gt; of type "hidden" with an antiforgery token. By
+        /// default &lt;form&gt; tags will automatically include an antiforgery token.
+        /// </param>
+        /// <returns>
+        /// An <see cref="MvcForm"/> instance which renders the &lt;/form&gt; end tag when disposed.
+        /// </returns>
+        /// <remarks>
+        /// In this context, "renders" means the method writes its output using <see cref="ViewContext.Writer"/>.
+        /// </remarks>
+        public static MvcForm BeginRouteForm(this IHtmlHelper htmlHelper, string routeName, bool suppressAntiforgery)
+        {
+            if (htmlHelper == null)
+            {
+                throw new ArgumentNullException(nameof(htmlHelper));
+            }
+
+            return htmlHelper.BeginRouteForm(
+                routeName,
+                routeValues: null,
+                method: FormMethod.Post,
+                suppressAntiforgery: suppressAntiforgery,
                 htmlAttributes: null);
         }
 
@@ -458,7 +558,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
                 routeName, 
                 routeValues, 
                 FormMethod.Post,
-                antiforgery: false,
+                suppressAntiforgery: false,
                 htmlAttributes: null);
         }
 
@@ -489,7 +589,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
                 routeName,
                 routeValues: null,
                 method: method,
-                antiforgery: false,
+                suppressAntiforgery: false,
                 htmlAttributes: null);
         }
 
@@ -528,7 +628,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
                 routeName,
                 routeValues,
                 method,
-                antiforgery: false,
+                suppressAntiforgery: false,
                 htmlAttributes: null);
         }
 
@@ -565,7 +665,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
                 routeName,
                 routeValues: null,
                 method: method,
-                antiforgery: false,
+                suppressAntiforgery: false,
                 htmlAttributes: htmlAttributes);
         }
     }
