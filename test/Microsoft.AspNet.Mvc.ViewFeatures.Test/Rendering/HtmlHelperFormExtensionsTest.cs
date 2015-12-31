@@ -36,6 +36,8 @@ namespace Microsoft.AspNet.Mvc.Rendering
             new Dictionary<string, object> { { "p1-name", "p1-value" }, { "p2-name", "p2-value" } },
         };
 
+        private static readonly IEnumerable<bool> _suppressAntiforgeryValues = new [] { true, false };
+
         public static TheoryData<string, string> ActionNameAndControllerNameDataSet
         {
             get
@@ -95,6 +97,33 @@ namespace Microsoft.AspNet.Mvc.Rendering
                 return dataSet;
             }
         }
+
+        public static TheoryData<string, string, FormMethod, bool, object> ActionNameControllerNameMethodSuppressAntiforgeryAndHtmlAttributesDataSet
+        {
+            get
+            {
+                var dataSet = new TheoryData<string, string, FormMethod, bool, object>();
+                foreach (var actionName in _actionNames)
+                {
+                    foreach (var controllerName in _controllerNames)
+                    {
+                        foreach (var method in _methods)
+                        {
+                            foreach (var suppressAntiforgery in _suppressAntiforgeryValues)
+                            {
+                                foreach (var htmlAttributes in _htmlAttributes)
+                                {
+                                    dataSet.Add(actionName, controllerName, method, suppressAntiforgery, htmlAttributes);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return dataSet;
+            }
+        }
+
 
         public static TheoryData<string, string, object> ActionNameControllerNameAndRouteValuesDataSet
         {
@@ -170,6 +199,26 @@ namespace Microsoft.AspNet.Mvc.Rendering
             }
         }
 
+        public static TheoryData<FormMethod, bool, object> MethodSuppressAntiforgeryAndHtmlAttributesDataSet
+        {
+            get
+            {
+                var dataSet = new TheoryData<FormMethod, bool, object>();
+                foreach (var method in _methods)
+                {
+                    foreach (var suppressAntiforgery in _suppressAntiforgeryValues)
+                    {
+                        foreach (var htmlAttributes in _htmlAttributes)
+                        {
+                            dataSet.Add(method, suppressAntiforgery, htmlAttributes);
+                        }
+                    }
+                }
+
+                return dataSet;
+            }
+        }
+
         public static TheoryData<string> RouteNameDataSet
         {
             get
@@ -213,6 +262,29 @@ namespace Microsoft.AspNet.Mvc.Rendering
                         foreach (var htmlAttributes in _htmlAttributes)
                         {
                             dataSet.Add(routeName, method, htmlAttributes);
+                        }
+                    }
+                }
+
+                return dataSet;
+            }
+        }
+
+        public static TheoryData<string, FormMethod, bool, object> RouteNameMethodSuppressAntiforgeryAndHtmlAttributesDataSet
+        {
+            get
+            {
+                var dataSet = new TheoryData<string, FormMethod, bool, object>();
+                foreach (var routeName in _routeNames)
+                {
+                    foreach (var method in _methods)
+                    {
+                        foreach (var suppressAntiforgery in _suppressAntiforgeryValues)
+                        {
+                            foreach (var htmlAttributes in _htmlAttributes)
+                            {
+                                dataSet.Add(routeName, method, suppressAntiforgery, htmlAttributes);
+                            }
                         }
                     }
                 }
@@ -280,7 +352,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     null,   // actionName
                     null,   // controllerName
@@ -289,6 +361,9 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
                 .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty);
 
             // Guards
             Assert.NotNull(htmlHelper.ViewContext);
@@ -314,7 +389,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     null,   // actionName
                     null,   // controllerName
@@ -323,6 +398,9 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
                 .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty);
 
             // Guards
             Assert.NotNull(htmlHelper.ViewContext);
@@ -350,7 +428,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     null,   // actionName
                     null,   // controllerName
@@ -359,6 +437,9 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     htmlAttributes))
                 .Returns(tagBuilder)
                 .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty);
 
             // Guards
             Assert.NotNull(htmlHelper.ViewContext);
@@ -376,6 +457,49 @@ namespace Microsoft.AspNet.Mvc.Rendering
         }
 
         [Theory]
+        [MemberData(nameof(MethodSuppressAntiforgeryAndHtmlAttributesDataSet))]
+        public void BeginFormWithMethodSuppressAntiforgeryAndHtmlAttributesParameters_CallsHtmlGeneratorWithExpectedValues(
+            FormMethod method,
+            bool suppressAntiforgery,
+            object htmlAttributes)
+        {
+            // Arrange
+            var tagBuilder = new TagBuilder(tagName: "form");
+            var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
+            var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
+            htmlGenerator
+                .Setup(g => g.GenerateForm(
+                    htmlHelper.ViewContext,
+                    null,   // actionName
+                    null,   // controllerName
+                    null,   // routeValues
+                    method.ToString().ToLowerInvariant(),
+                    htmlAttributes))
+                .Returns(tagBuilder)
+                .Verifiable();
+            if (!suppressAntiforgery)
+            {
+                htmlGenerator
+                    .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                    .Returns(HtmlString.Empty);
+            }
+
+            // Guards
+            Assert.NotNull(htmlHelper.ViewContext);
+            var writer = Assert.IsAssignableFrom<StringWriter>(htmlHelper.ViewContext.Writer);
+            var builder = writer.GetStringBuilder();
+            Assert.NotNull(builder);
+
+            // Act
+            var mvcForm = htmlHelper.BeginForm(method, suppressAntiforgery, htmlAttributes);
+
+            // Assert
+            Assert.NotNull(mvcForm);
+            Assert.Equal("<form>", builder.ToString());
+            htmlGenerator.Verify();
+        }
+
+        [Theory]
         [MemberData(nameof(RouteValuesDataSet))]
         public void BeginFormWithRouteValuesParameter_CallsHtmlGeneratorWithExpectedValues(object routeValues)
         {
@@ -384,7 +508,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     null,   // actionName
                     null,   // controllerName
@@ -392,6 +516,10 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     "post", // method
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -420,7 +548,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     actionName,
                     controllerName,
@@ -428,6 +556,10 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     "post", // method
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -457,7 +589,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     actionName,
                     controllerName,
@@ -465,6 +597,10 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     "post", // method
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -494,7 +630,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     actionName,
                     controllerName,
@@ -502,6 +638,10 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     method.ToString().ToLowerInvariant(),
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -532,7 +672,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     actionName,
                     controllerName,
@@ -540,6 +680,10 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     method.ToString().ToLowerInvariant(),
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -570,7 +714,7 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateForm(
+                .Setup(g => g.GenerateForm(
                     htmlHelper.ViewContext,
                     actionName,
                     controllerName,
@@ -578,6 +722,10 @@ namespace Microsoft.AspNet.Mvc.Rendering
                     method.ToString().ToLowerInvariant(),
                     htmlAttributes))
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -596,6 +744,59 @@ namespace Microsoft.AspNet.Mvc.Rendering
         }
 
         [Theory]
+        [MemberData(nameof(ActionNameControllerNameMethodSuppressAntiforgeryAndHtmlAttributesDataSet))]
+        public void BeginFormWithActionNameContollerNameMethodSuppressAntiforgeryAndHtmlAttributesParameters_CallsHtmlGeneratorWithExpectedValues(
+            string actionName,
+            string controllerName,
+            FormMethod method,
+            bool suppressAntiforgery,
+            object htmlAttributes)
+        {
+            // Arrange
+            var tagBuilder = new TagBuilder(tagName: "form");
+            var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
+            var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
+            htmlGenerator
+                .Setup(g => g.GenerateForm(
+                    htmlHelper.ViewContext,
+                    actionName,
+                    controllerName,
+                    null,   // routeValues
+                    method.ToString().ToLowerInvariant(),
+                    htmlAttributes))
+                .Returns(tagBuilder)
+                .Verifiable();
+
+            if (!suppressAntiforgery)
+            {
+                htmlGenerator
+                    .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                    .Returns(HtmlString.Empty)
+                    .Verifiable();
+            }
+
+            // Guards
+            Assert.NotNull(htmlHelper.ViewContext);
+            var writer = Assert.IsAssignableFrom<StringWriter>(htmlHelper.ViewContext.Writer);
+            var builder = writer.GetStringBuilder();
+            Assert.NotNull(builder);
+
+            // Act
+            var mvcForm = htmlHelper.BeginForm(
+                actionName,
+                controllerName,
+                routeValues: null,
+                method: method,
+                suppressAntiforgery: suppressAntiforgery,
+                htmlAttributes: htmlAttributes);
+
+            // Assert
+            Assert.NotNull(mvcForm);
+            Assert.Equal("<form>", builder.ToString());
+            htmlGenerator.Verify();
+        }
+
+        [Theory]
         [MemberData(nameof(RouteValuesDataSet))]
         public void BeginRouteFormWithRouteValuesParameter_CallsHtmlGeneratorWithExpectedValues(object routeValues)
         {
@@ -604,13 +805,17 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateRouteForm(
+                .Setup(g => g.GenerateRouteForm(
                     htmlHelper.ViewContext,
                     null,   // routeName
                     routeValues,
                     "post", // method
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -637,13 +842,17 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateRouteForm(
+                .Setup(g => g.GenerateRouteForm(
                     htmlHelper.ViewContext,
                     routeName,
                     null,   // routeValues
                     "post", // method
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -672,13 +881,17 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateRouteForm(
+                .Setup(g => g.GenerateRouteForm(
                     htmlHelper.ViewContext,
                     routeName,
                     routeValues,
                     "post", // method
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -707,13 +920,17 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateRouteForm(
+                .Setup(g => g.GenerateRouteForm(
                     htmlHelper.ViewContext,
                     routeName,
                     null,   // routeValues
                     method.ToString().ToLowerInvariant(),
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -743,13 +960,17 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateRouteForm(
+                .Setup(g => g.GenerateRouteForm(
                     htmlHelper.ViewContext,
                     routeName,
                     routeValues,
                     method.ToString().ToLowerInvariant(),
                     null))  // htmlAttributes
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -779,13 +1000,17 @@ namespace Microsoft.AspNet.Mvc.Rendering
             var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
             var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
             htmlGenerator
-                .Setup(realHelper => realHelper.GenerateRouteForm(
+                .Setup(g => g.GenerateRouteForm(
                     htmlHelper.ViewContext,
                     routeName,
                     null,   // routeValues
                     method.ToString().ToLowerInvariant(),
                     htmlAttributes))
                 .Returns(tagBuilder)
+                .Verifiable();
+            htmlGenerator
+                .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                .Returns(HtmlString.Empty)
                 .Verifiable();
 
             // Guards
@@ -796,6 +1021,56 @@ namespace Microsoft.AspNet.Mvc.Rendering
 
             // Act
             var mvcForm = htmlHelper.BeginRouteForm(routeName, method, htmlAttributes);
+
+            // Assert
+            Assert.NotNull(mvcForm);
+            Assert.Equal("<form>", builder.ToString());
+            htmlGenerator.Verify();
+        }
+
+        [Theory]
+        [MemberData(nameof(RouteNameMethodSuppressAntiforgeryAndHtmlAttributesDataSet))]
+        public void BeginRouteFormWithRouteNameMethodSuppressAntiforgeryAndHtmlAttributesParameters_CallsHtmlGeneratorWithExpectedValues(
+            string routeName,
+            FormMethod method,
+            bool suppressAntiforgery,
+            object htmlAttributes)
+        {
+            // Arrange
+            var tagBuilder = new TagBuilder(tagName: "form");
+            var htmlGenerator = new Mock<IHtmlGenerator>(MockBehavior.Strict);
+            var htmlHelper = DefaultTemplatesUtilities.GetHtmlHelper(htmlGenerator.Object);
+            htmlGenerator
+                .Setup(g => g.GenerateRouteForm(
+                    htmlHelper.ViewContext,
+                    routeName,
+                    null,   // routeValues
+                    method.ToString().ToLowerInvariant(),
+                    htmlAttributes))
+                .Returns(tagBuilder)
+                .Verifiable();
+
+            if (!suppressAntiforgery)
+            {
+                htmlGenerator
+                    .Setup(g => g.GenerateAntiforgery(htmlHelper.ViewContext))
+                    .Returns(HtmlString.Empty)
+                    .Verifiable();
+            }
+
+            // Guards
+            Assert.NotNull(htmlHelper.ViewContext);
+            var writer = Assert.IsAssignableFrom<StringWriter>(htmlHelper.ViewContext.Writer);
+            var builder = writer.GetStringBuilder();
+            Assert.NotNull(builder);
+
+            // Act
+            var mvcForm = htmlHelper.BeginRouteForm(
+                routeName,
+                routeValues: null,
+                method: method,
+                suppressAntiforgery: suppressAntiforgery,
+                htmlAttributes: htmlAttributes);
 
             // Assert
             Assert.NotNull(mvcForm);
