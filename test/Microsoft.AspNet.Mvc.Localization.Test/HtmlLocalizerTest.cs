@@ -145,6 +145,11 @@ namespace Microsoft.AspNet.Mvc.Localization.Test
         [MemberData(nameof(InvalidResourceStringData))]
         public void HtmlLocalizer_HtmlWithInvalidResourceString_ContentThrowsException(string format)
         {
+            Console.WriteLine($"IsMac: { TestPlatformHelper.IsMac }");
+            Console.WriteLine($"IsMono: { TestPlatformHelper.IsMono }");
+            Console.WriteLine($"OperatingSystem: { Extensions.PlatformAbstractions.PlatformServices.Default.Runtime.OperatingSystem }");
+            Console.WriteLine($"OperatingSystemPlatform: { Extensions.PlatformAbstractions.PlatformServices.Default.Runtime.OperatingSystemPlatform }");
+
             // Arrange
             var localizedString = new LocalizedString("Hello", format);
 
